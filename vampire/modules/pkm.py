@@ -143,8 +143,6 @@ class HashingMemory(nn.Module):
         indices = indices.view(bs, self.heads * self.knn)                       # (bs,heads*knn)
         scores = scores.view(bs, self.heads * self.knn)                         # (bs,heads*knn)
 
-        return scores, indices
-
         # weighted sum of values
         output = self.values(indices, per_sample_weights=scores)                # (bs,v_dim)
         output = F.dropout(output, p=self.value_dropout, training=self.training)# (bs,v_dim)
