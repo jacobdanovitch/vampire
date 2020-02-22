@@ -5,6 +5,12 @@ from allennlp.modules import FeedForward
 from overrides import overrides
 
 from vampire.modules.vae.vae import VAE
+from vampire.modules.pkm import HashingMemory
+
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
 
 
 @VAE.register("logistic_normal")
@@ -29,6 +35,19 @@ class LogisticNormal(VAE):
                                         bias=False)
         self._z_dropout = torch.nn.Dropout(z_dropout)
 
+        mem_params = AttrDict({
+            "sparse": False,
+            "k_dim": 128,
+            "heads": 4,
+            "knn": 32,
+            "n_keys": 512,  # the memory will have (n_keys ** 2) values
+            "query_batchnorm": True,
+            "input_dropout": 0,
+            "query_dropout": 0,
+            "value_dropout": 0,
+        })
+        self.memory = HashingMemory(encoder.get_output_dim(), decoder.get_input_dim(), mem_params)
+
         self.latent_dim = mean_projection.get_output_dim()
 
     @overrides
@@ -44,6 +63,7 @@ class LogisticNormal(VAE):
             intermediate_input = layer(intermediate_input)
             activations.append((f"encoder_layer_{layer_index}", intermediate_input))
         output = self.generate_latent_code(intermediate_input)
+        output = self.memory(output)
         theta = output["theta"]
         activations.append(('theta', theta))
         reconstruction = self._decoder(theta)
