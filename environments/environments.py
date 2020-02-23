@@ -19,7 +19,7 @@ CLASSIFIER = {
         "EMBEDDINGS": ["VAMPIRE", "RANDOM"],
         "ENCODER": "AVERAGE",
         "EMBEDDING_DROPOUT": 0.5,
-        "LEARNING_RATE": 0.001,
+        "LEARNING_RATE": os.environ.get("LEARNING_RATE", 0.001),
         "DROPOUT": 0.3,
         "VAMPIRE_DIRECTORY": os.environ.get("VAMPIRE_DIR", None),
         "VAMPIRE_DIM": os.environ.get("VAMPIRE_DIM", None),

@@ -11,7 +11,7 @@ from allennlp.data.tokenizers.word_splitter import SpacyWordSplitter
 from scipy import sparse
 from sklearn.feature_extraction.text import CountVectorizer
 from spacy.tokenizer import Tokenizer
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from vampire.common.util import read_text, save_sparse, write_to_json
 
@@ -73,16 +73,26 @@ def main():
     tokenized_train_examples = load_data(args.train_path, args.tokenize, args.tokenizer_type)
     tokenized_dev_examples = load_data(args.dev_path, args.tokenize, args.tokenizer_type)
 
+    rationale_dir = lambda x: os.path.join(x, "rationales")
+    tokenized_train_rationales = load_data(rationale_dir(args.train_path), args.tokenize, args.tokenizer_type)
+    tokenized_dev_rationales = load_data(rationale_dir(args.dev_path), args.tokenize, args.tokenizer_type)
+
     print("fitting count vectorizer...")
 
     count_vectorizer = CountVectorizer(stop_words='english', max_features=args.vocab_size, token_pattern=r'\b[^\d\W]{3,30}\b')
     
-    text = tokenized_train_examples + tokenized_dev_examples
+    text = (tokenized_train_examples + 
+            tokenized_dev_examples +
+            tokenized_train_rationales +
+            tokenized_dev_rationales)
     
     count_vectorizer.fit(tqdm(text))
 
     vectorized_train_examples = count_vectorizer.transform(tqdm(tokenized_train_examples))
     vectorized_dev_examples = count_vectorizer.transform(tqdm(tokenized_dev_examples))
+
+    vectorized_train_rationales = count_vectorizer.transform(tqdm(tokenized_train_rationales))
+    vectorized_dev_rationales = count_vectorizer.transform(tqdm(tokenized_dev_rationales))
 
     reference_vectorizer = CountVectorizer(stop_words='english', token_pattern=r'\b[^\d\W]{3,30}\b')
     if not args.reference_corpus_path:
@@ -99,7 +109,11 @@ def main():
     # add @@unknown@@ token vector
     vectorized_train_examples = sparse.hstack((np.array([0] * len(tokenized_train_examples))[:,None], vectorized_train_examples))
     vectorized_dev_examples = sparse.hstack((np.array([0] * len(tokenized_dev_examples))[:,None], vectorized_dev_examples))
-    master = sparse.vstack([vectorized_train_examples, vectorized_dev_examples])
+    
+    vectorized_train_rationales = sparse.hstack((np.array([0] * len(tokenized_train_rationales))[:,None], vectorized_train_examples))
+    vectorized_dev_rationales = sparse.hstack((np.array([0] * len(tokenized_dev_rationales))[:,None], vectorized_dev_examples))
+    
+    master = sparse.vstack([vectorized_train_examples, vectorized_dev_examples, vectorized_train_rationales, vectorized_dev_rationales])
 
     # generate background frequency
     print("generating background frequency...")
@@ -108,6 +122,10 @@ def main():
     print("saving data...")
     save_sparse(vectorized_train_examples, os.path.join(args.serialization_dir, "train.npz"))
     save_sparse(vectorized_dev_examples, os.path.join(args.serialization_dir, "dev.npz"))
+
+    save_sparse(vectorized_train_rationales, os.path.join(args.serialization_dir, "train_rationales.npz"))
+    save_sparse(vectorized_dev_rationales, os.path.join(args.serialization_dir, "dev_rationales.npz"))
+
     if not os.path.isdir(os.path.join(args.serialization_dir, "reference")):
         os.mkdir(os.path.join(args.serialization_dir, "reference"))
     save_sparse(reference_matrix, os.path.join(args.serialization_dir, "reference", "ref.npz"))
