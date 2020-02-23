@@ -367,7 +367,7 @@ class VAMPIRE(Model):
     @overrides
     def forward(self,  # pylint: disable=arguments-differ
                 tokens: Union[Dict[str, torch.IntTensor], torch.IntTensor],
-                rationale: Union[Dict[str, torch.IntTensor], torch.IntTensor] = None,
+                rationales: Union[Dict[str, torch.IntTensor], torch.IntTensor] = None,
                 epoch_num: List[int] = None):
         """
         Parameters
@@ -402,7 +402,6 @@ class VAMPIRE(Model):
             return tokens
         
         embedded_tokens = embed_tokens(tokens, 'tokens')
-        embedded_rationale = embed_tokens(rationale, 'rationale')
 
         # Perform variational inference.
         variational_output = self.vae(embedded_tokens)
@@ -416,7 +415,12 @@ class VAMPIRE(Model):
 
         # Reconstruction log likelihood: log P(x | z) = log softmax(z beta + b)
         x_reconstruction_loss = self.bow_reconstruction_loss(reconstructed_bow, embedded_tokens)
-        rationale_reconstruction_loss = = self.bow_reconstruction_loss(reconstructed_bow, embedded_rationale)
+        
+        rationale_reconstruction_loss = 0
+        if rationales is not None:
+            embedded_rationales = embed_tokens(rationales, 'rationale')
+            rationale_reconstruction_loss = self.bow_reconstruction_loss(reconstructed_bow, embedded_rationales)
+        
         reconstruction_loss = x_reconstruction_loss + rationale_reconstruction_loss
 
         # KL-divergence that is returned is the mean of the batch by default.
