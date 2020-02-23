@@ -123,8 +123,8 @@ def main():
     save_sparse(vectorized_train_examples, os.path.join(args.serialization_dir, "train.npz"))
     save_sparse(vectorized_dev_examples, os.path.join(args.serialization_dir, "dev.npz"))
 
-    save_sparse(vectorized_train_rationales, os.path.join(args.serialization_dir, 'rationales', "train_rationales.npz"))
-    save_sparse(vectorized_dev_rationales, os.path.join(args.serialization_dir, 'rationales', "dev_rationales.npz"))
+    save_sparse(vectorized_train_rationales, os.path.join(args.serialization_dir, "train_rationales.npz"))
+    save_sparse(vectorized_dev_rationales, os.path.join(args.serialization_dir, "dev_rationales.npz"))
 
     if not os.path.isdir(os.path.join(args.serialization_dir, "reference")):
         os.mkdir(os.path.join(args.serialization_dir, "reference"))
