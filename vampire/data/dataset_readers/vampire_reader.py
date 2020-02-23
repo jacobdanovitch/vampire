@@ -47,7 +47,8 @@ class VampireReader(DatasetReader):
     def _read(self, file_path):
         # load sparse matrix
         mat = load_sparse(file_path)
-        r_mat = load_sparse(os.path.join(os.path.dirname(file_path), 'rationales', os.path.basename(file_path)))
+        # r_mat = load_sparse(os.path.join(os.path.dirname(file_path), 'rationales', os.path.basename(file_path)))
+        r_mat = load_sparse(file_path.replace('.npz', '_rationales.npz'))
         # convert to lil format for row-wise iteration
         mat = mat.tolil()
         r_mat = r_mat.tolil()
