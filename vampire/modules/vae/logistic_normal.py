@@ -33,6 +33,8 @@ class LogisticNormal(VAE):
         self._kld_clamp = kld_clamp
         self._decoder = torch.nn.Linear(decoder.get_input_dim(), decoder.get_output_dim(),
                                         bias=False)
+        self._decoder_rationale = torch.nn.Linear(decoder.get_input_dim(), decoder.get_output_dim(),
+                                        bias=False)
         self._z_dropout = torch.nn.Dropout(z_dropout)
 
         mem_params = AttrDict({
@@ -46,7 +48,7 @@ class LogisticNormal(VAE):
             "query_dropout": 0,
             "value_dropout": 0,
         })
-        self.memory = HashingMemory(encoder.get_output_dim(), decoder.get_input_dim(), mem_params)
+        # self.memory = HashingMemory(encoder.get_output_dim(), decoder.get_input_dim(), mem_params)
 
         self.latent_dim = mean_projection.get_output_dim()
 
@@ -64,10 +66,12 @@ class LogisticNormal(VAE):
             activations.append((f"encoder_layer_{layer_index}", intermediate_input))
         output = self.generate_latent_code(intermediate_input)
         theta = output["theta"]
-        theta = self.memory(theta)
+        # theta = self.memory(theta)
         activations.append(('theta', theta))
         reconstruction = self._decoder(theta)
+        rationale_reconstruction = self._decoder_rationale
         output["reconstruction"] = reconstruction
+        output["rationale_reconstruction"] = rationale_reconstruction
         output['activations'] = activations
 
         return output
