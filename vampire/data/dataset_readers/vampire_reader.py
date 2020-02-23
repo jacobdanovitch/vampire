@@ -1,3 +1,4 @@
+import os
 import logging
 from typing import Dict
 
@@ -46,8 +47,10 @@ class VampireReader(DatasetReader):
     def _read(self, file_path):
         # load sparse matrix
         mat = load_sparse(file_path)
+        r_mat = load_sparse(os.path.join(os.path.dirname(file_path), 'rationales', os.path.basename(file_path)))
         # convert to lil format for row-wise iteration
         mat = mat.tolil()
+        r_mat = r_mat.tolil()
 
         # optionally sample the matrix
         if self._sample:
@@ -56,12 +59,12 @@ class VampireReader(DatasetReader):
             indices = range(mat.shape[0])
 
         for index in indices:
-            instance = self.text_to_instance(vec=mat[index].toarray().squeeze())
+            instance = self.text_to_instance(vec=mat[index].toarray().squeeze(), rationales=r_mat[index].toarray().squeeze())
             if instance is not None and mat[index].toarray().sum() > self._min_sequence_length:
                 yield instance
 
     @overrides
-    def text_to_instance(self, vec: str = None) -> Instance:  # type: ignore
+    def text_to_instance(self, vec: str = None, rationales: str = None) -> Instance:  # type: ignore
         """
         Parameters
         ----------
@@ -81,4 +84,5 @@ class VampireReader(DatasetReader):
         # pylint: disable=arguments-differ
         fields: Dict[str, Field] = {}
         fields['tokens'] = ArrayField(vec)
+        fields['rationales'] = ArrayField(rationales)
         return Instance(fields)
