@@ -367,6 +367,7 @@ class VAMPIRE(Model):
     @overrides
     def forward(self,  # pylint: disable=arguments-differ
                 tokens: Union[Dict[str, torch.IntTensor], torch.IntTensor],
+                rationale: Union[Dict[str, torch.IntTensor], torch.IntTensor] = None,
                 epoch_num: List[int] = None):
         """
         Parameters
@@ -395,11 +396,13 @@ class VAMPIRE(Model):
             self.update_kld_weight(epoch_num)
 
         # if you supply input as token IDs, embed them into bag-of-word-counts with a token embedder
-        if isinstance(tokens, dict):
-            embedded_tokens = (self._bag_of_words_embedder(tokens['tokens'])
-                               .to(device=self.device))
-        else:
-            embedded_tokens = tokens
+        def embed_tokens(tokens, field):
+            if isinstance(tokens, dict):
+                return self._bag_of_words_embedder(tokens[field]).to(device=self.device)
+            return tokens
+        
+        embedded_tokens = embed_tokens(tokens, 'tokens')
+        embedded_rationale = embed_tokens(rationale, 'rationale')
 
         # Perform variational inference.
         variational_output = self.vae(embedded_tokens)
@@ -412,7 +415,9 @@ class VAMPIRE(Model):
         reconstructed_bow = self.bow_bn(reconstructed_bow)
 
         # Reconstruction log likelihood: log P(x | z) = log softmax(z beta + b)
-        reconstruction_loss = self.bow_reconstruction_loss(reconstructed_bow, embedded_tokens)
+        x_reconstruction_loss = self.bow_reconstruction_loss(reconstructed_bow, embedded_tokens)
+        rationale_reconstruction_loss = = self.bow_reconstruction_loss(reconstructed_bow, embedded_rationale)
+        reconstruction_loss = x_reconstruction_loss + rationale_reconstruction_loss
 
         # KL-divergence that is returned is the mean of the batch by default.
         negative_kl_divergence = variational_output['negative_kl_divergence']
@@ -423,8 +428,12 @@ class VAMPIRE(Model):
         loss = -torch.mean(elbo)
 
         output_dict['loss'] = loss
-
         output_dict['activations'] = variational_output['activations']
+        output_dict['reconstruction'] = {
+            'reconstructed_bow': reconstructed_bow,
+            'loss_x': x_reconstruction_loss,
+            'loss_rationale': rationale_reconstruction_loss
+        }
 
         # Update metrics
         self.metrics['nkld'](-torch.mean(negative_kl_divergence))
