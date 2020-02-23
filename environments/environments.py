@@ -66,7 +66,7 @@ VAMPIRE = {
         "UPDATE_BACKGROUND_FREQUENCY": 0,
         "VOCAB_SIZE": os.environ.get("VOCAB_SIZE", 30000),
         "BATCH_SIZE": os.environ.get("BATCH_SIZE", 256),
-        "MIN_SEQUENCE_LENGTH": 3,
+        "MIN_SEQUENCE_LENGTH": -1, # 3,
         "NUM_EPOCHS": 50,
         "PATIENCE": 5,
         "VALIDATION_METRIC": "+npmi"

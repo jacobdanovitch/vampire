@@ -410,22 +410,20 @@ class VAMPIRE(Model):
 
         # Reconstructed bag-of-words from the VAE with background bias.
         reconstructed_bow = variational_output['reconstruction'] + self._background_freq
+        reconstructed_rationale = variational_output['rationale_reconstruction'] + self._background_freq
         # Apply batchnorm to the reconstructed bag of words.
         # Helps with word variety in topic space.
         reconstructed_bow = self.bow_bn(reconstructed_bow)
+        reconstructed_rationale = self.bow_bn(reconstructed_rationale)
         
 
         # Reconstruction log likelihood: log P(x | z) = log softmax(z beta + b)
         x_reconstruction_loss = self.bow_reconstruction_loss(reconstructed_bow, embedded_tokens)
         
-        rationale_reconstruction_loss = 0
+        rationale_reconstruction_loss = torch.zeros_like(x_reconstruction_loss)
         if rationales is not None:
             embedded_rationales = embed_tokens(rationales, 'rationale')
-            
-            reconstructed_rationale = variational_output['rationale_reconstruction'] + self._background_freq
-            reconstructed_rationale = self.bow_bn(reconstructed_rationale)
-
-            rationale_reconstruction_loss = self.bow_reconstruction_loss(reconstructed_bow, embedded_rationales)
+            rationale_reconstruction_loss = self.bow_reconstruction_loss(reconstructed_rationale, embedded_rationales)
         
         reconstruction_loss = (alpha * x_reconstruction_loss) + ((1-alpha) * rationale_reconstruction_loss)
 
