@@ -382,6 +382,8 @@ class VAMPIRE(Model):
         epoch_num: ``List[int]``
             Output of epoch tracker
         """
+        alpha = 1.0 if rationales is None else 0.5
+
         # For easy transfer to the GPU.
         self.device = self.vae.get_beta().device  # pylint: disable=W0201
 
@@ -421,7 +423,7 @@ class VAMPIRE(Model):
             embedded_rationales = embed_tokens(rationales, 'rationale')
             rationale_reconstruction_loss = self.bow_reconstruction_loss(reconstructed_bow, embedded_rationales)
         
-        reconstruction_loss = x_reconstruction_loss + rationale_reconstruction_loss
+        reconstruction_loss = (alpha * x_reconstruction_loss) + ((1-alpha) * rationale_reconstruction_loss)
 
         # KL-divergence that is returned is the mean of the batch by default.
         negative_kl_divergence = variational_output['negative_kl_divergence']
